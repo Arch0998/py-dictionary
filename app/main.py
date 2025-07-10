@@ -1,35 +1,64 @@
 from typing import Any
 
 
-class Dictionary:
-    def __init__(self) -> None:
-        self.lenght = 0
-        self.hash_table = [[] for _ in range(8)]
+class Node:
+    def __init__(
+            self,
+            key: Any,
+            value: Any,
+            hash_value: int
+    ) -> None:
+        self.key = key
+        self.value = value
+        self.hash = hash_value
 
-    def get_hash(self, key: Any) -> int:
-        return hash(key) % len(self.hash_table)
+
+class Dictionary:
+    def __init__(
+            self,
+            initial_capacity: int = 8,
+            load_factor: float = 0.75
+    ) -> None:
+        self._size = 0
+        self._capacity = initial_capacity
+        self._load_factor = load_factor
+        self._table = [[] for _ in range(self._capacity)]
+
+    def _get_hash(self, key: Any) -> int:
+        return hash(key)
+
+    def _index(self, key: Any) -> int:
+        return self._get_hash(key) % self._capacity
+
+    def _resize(self) -> None:
+        old_table = self._table
+        self._capacity *= 2
+        self._table = [[] for _ in range(self._capacity)]
+        self._size = 0
+        for bucket in old_table:
+            for node in bucket:
+                self[node.key] = node.value
 
     def __setitem__(self, key: Any, value: Any) -> None:
-        index = self.get_hash(key)
-        table = self.hash_table[index]
-
-        for item in table:
-            if item["key"] == key:
-                item["value"] = value
+        if self._size + 1 > self._capacity * self._load_factor:
+            self._resize()
+        idx = self._index(key)
+        bucket = self._table[idx]
+        for node in bucket:
+            if node.key == key:
+                node.value = value
                 return
-
-        table.append({"key": key, "value": value})
-        self.lenght += 1
+        node = Node(key, value, self._get_hash(key))
+        bucket.append(node)
+        self._size += 1
 
     def __getitem__(self, key: Any) -> Any:
-        index = self.get_hash(key)
-        table = self.hash_table[index]
-
-        for item in table:
-            if item["key"] == key:
-                return item["value"]
-
+        idx = self._index(key)
+        bucket = self._table[idx]
+        for node in bucket:
+            if node.key == key:
+                return node.value
         raise KeyError(f"Key '{key}' not found")
 
     def __len__(self) -> int:
-        return self.lenght
+        return self._size
